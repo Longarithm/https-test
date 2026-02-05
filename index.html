@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTPS to IP Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+        input {
+            padding: 8px;
+            width: 300px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>HTTPS Request to IP Address Test</h1>
+    <p>This page demonstrates what happens when making HTTPS requests from an HTTPS-hosted site to an IP address.</p>
+
+    <div class="test-section">
+        <h2>Test Configuration</h2>
+        <label>Target IP:
+            <input type="text" id="targetIp" value="192.168.1.1" placeholder="e.g., 192.168.1.1">
+        </label>
+        <br><br>
+        <label>Target Port (HTTPS):
+            <input type="number" id="targetPort" value="443" placeholder="443">
+        </label>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 1: Fetch API Request</h2>
+        <button onclick="testFetch()">Test HTTPS Fetch to IP</button>
+        <div id="fetchResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: XMLHttpRequest</h2>
+        <button onclick="testXHR()">Test HTTPS XHR to IP</button>
+        <div id="xhrResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Image Load</h2>
+        <button onclick="testImage()">Test HTTPS Image from IP</button>
+        <div id="imageResult" class="result"></div>
+        <img id="testImage" style="display:none; max-width: 200px;" />
+    </div>
+
+    <div class="test-section">
+        <h2>Browser Info</h2>
+        <div class="result">
+            <strong>Current page protocol:</strong> <span id="protocol"></span><br>
+            <strong>User Agent:</strong> <span id="userAgent"></span>
+        </div>
+    </div>
+
+    <script>
+        // Display browser info
+        document.getElementById('protocol').textContent = window.location.protocol;
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+
+        function getTargetUrl() {
+            const ip = document.getElementById('targetIp').value;
+            const port = document.getElementById('targetPort').value;
+            return `https://${ip}:${port}`;
+        }
+
+        async function testFetch() {
+            const resultDiv = document.getElementById('fetchResult');
+            const targetUrl = getTargetUrl();
+            resultDiv.innerHTML = `Testing: ${targetUrl}\n\nAttempting fetch...`;
+
+            try {
+                const response = await fetch(targetUrl, {
+                    mode: 'cors',
+                    method: 'GET'
+                });
+                resultDiv.innerHTML = `<span class="success">✓ Request succeeded!</span>\n` +
+                    `Status: ${response.status}\n` +
+                    `Headers: ${JSON.stringify([...response.headers], null, 2)}`;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ Request failed!</span>\n` +
+                    `Error: ${error.name}\n` +
+                    `Message: ${error.message}\n` +
+                    `\nThis is expected when:\n` +
+                    `- The IP has no valid SSL certificate for its IP address\n` +
+                    `- Certificate is self-signed\n` +
+                    `- CORS is not configured\n` +
+                    `- Mixed content policy blocks it`;
+            }
+        }
+
+        function testXHR() {
+            const resultDiv = document.getElementById('xhrResult');
+            const targetUrl = getTargetUrl();
+            resultDiv.innerHTML = `Testing: ${targetUrl}\n\nAttempting XHR...`;
+
+            const xhr = new XMLHttpRequest();
+
+            xhr.onload = function() {
+                resultDiv.innerHTML = `<span class="success">✓ Request succeeded!</span>\n` +
+                    `Status: ${xhr.status}\n` +
+                    `Response: ${xhr.responseText.substring(0, 200)}...`;
+            };
+
+            xhr.onerror = function() {
+                resultDiv.innerHTML = `<span class="error">✗ Request failed!</span>\n` +
+                    `XHR error occurred\n` +
+                    `This typically indicates:\n` +
+                    `- Network error\n` +
+                    `- Certificate validation failed\n` +
+                    `- CORS policy blocked the request`;
+            };
+
+            xhr.ontimeout = function() {
+                resultDiv.innerHTML = `<span class="error">✗ Request timeout</span>`;
+            };
+
+            try {
+                xhr.open('GET', targetUrl, true);
+                xhr.timeout = 5000;
+                xhr.send();
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ Exception thrown!</span>\n` +
+                    `Error: ${error.message}`;
+            }
+        }
+
+        function testImage() {
+            const resultDiv = document.getElementById('imageResult');
+            const img = document.getElementById('testImage');
+            const targetUrl = getTargetUrl() + '/favicon.ico';
+
+            resultDiv.innerHTML = `Testing: ${targetUrl}\n\nAttempting to load image...`;
+
+            img.onload = function() {
+                img.style.display = 'block';
+                resultDiv.innerHTML = `<span class="success">✓ Image loaded successfully!</span>\n` +
+                    `Size: ${img.width}x${img.height}`;
+            };
+
+            img.onerror = function(e) {
+                img.style.display = 'none';
+                resultDiv.innerHTML = `<span class="error">✗ Image load failed!</span>\n` +
+                    `This indicates certificate or network issues`;
+            };
+
+            img.src = targetUrl;
+        }
+
+        // Add warning if page is not served over HTTPS
+        if (window.location.protocol !== 'https:') {
+            const warning = document.createElement('div');
+            warning.style = 'background: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 5px;';
+            warning.innerHTML = '<strong>⚠️ Warning:</strong> This page is not served over HTTPS. ' +
+                'To properly test HTTPS → HTTPS behavior, deploy this page to an HTTPS server.';
+            document.body.insertBefore(warning, document.body.firstChild);
+        }
+    </script>
+</body>
+</html>
