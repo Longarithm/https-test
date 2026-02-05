@@ -51,12 +51,17 @@
     <div class="test-section">
         <h2>Test Configuration</h2>
         <label>Target IP:
-            <input type="text" id="targetIp" value="192.168.1.1" placeholder="e.g., 192.168.1.1">
+            <input type="text" id="targetIp" value="3.95.121.17" placeholder="e.g., 3.95.121.17">
         </label>
         <br><br>
         <label>Target Port (HTTPS):
             <input type="number" id="targetPort" value="443" placeholder="443">
         </label>
+        <p><small>
+            <strong>Recommended:</strong> 3.95.121.17 (httpbin.org - has CORS enabled)<br>
+            <strong>Note:</strong> 1.1.1.1, 8.8.8.8 will show CORS errors before certificate errors<br>
+            <strong>Tip:</strong> Use the Image Test below to bypass CORS and see pure certificate errors
+        </small></p>
     </div>
 
     <div class="test-section">
